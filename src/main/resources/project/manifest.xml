@@ -1,0 +1,27 @@
+<?xml version='1.0' standalone='yes'?>
+<fileset>
+  <file>
+    <path>PropertyCfg.pm</path>
+    <xpath>//property[propertyName=&quot;ECSCM::Property::Cfg&quot;]/value</xpath>
+  </file>
+  <file>
+    <path>PropertyDriver.pm</path>
+    <xpath>//property[propertyName=&quot;ECSCM::Property::Driver&quot;]/value</xpath>
+  </file>
+  <file>
+    <path>propertySentryForm.xml</path>
+    <xpath>//property[propertyName=&quot;sentry&quot;]/value</xpath>
+  </file>
+  <file>
+    <path>propertyCreateConfigForm.xml</path>
+    <xpath>//property[propertyName=&quot;createConfig&quot;]/value</xpath>
+  </file>
+  <file>
+    <path>propertyEditConfigForm.xml</path>
+    <xpath>//property[propertyName=&quot;editConfig&quot;]/value</xpath>
+  </file>
+  <file>
+    <path>ec_setup.pl</path>
+    <xpath>//property[propertyName=&quot;ec_setup&quot;]/value</xpath>
+  </file>
+</fileset>

@@ -1,0 +1,158 @@
+# -*-Perl-*-
+
+# ec_setup.ntest -
+#
+# Exercise the ec_setup script for the plugin.
+#
+# Copyright (c) 2005-2010 Electric Cloud, Inc.
+# All rights reserved
+
+use strict;
+use warnings;
+use ECTest;
+
+initCommander();
+
+my $N = $adminSession;
+my $pluginKey = "ECSCM-Property";
+my $xpath = $N->getPlugin($pluginKey);
+my $pluginName = $xpath->findvalue("//pluginName")->value;
+
+#-------------------------------------------------------------------------------
+# Test permissions and visibility, which should be set regardless of whether the
+# plugin is promoted or not.
+#-------------------------------------------------------------------------------
+ntest "install", {}, sub {
+    # Start out with the demoted plugin
+    assertOK($N->promotePlugin($pluginName, {promoted => 0}));
+
+    # Verify visibility of the project
+    $xpath = $N->getProperty("/projects/$pluginName/ec_visibility");
+    assertEq("NoSuchProperty", $xpath->findvalue("//code"),
+             "default visibility for project");
+
+    # Verify permissions for the CreateConfiguration procedure
+    my $procName = "CreateConfiguration";
+    my $adminGroup = 'SCMAdmins';
+    assertOK($xpath = $N->getAclEntry("group", $adminGroup,
+                                      {projectName => $pluginName,
+                                       procedureName => $procName}),
+             "$procName ACL entry exists");
+    assertEq("inherit", $xpath->findvalue("//readPrivilege"),
+             "$procName ACL entry read");
+    assertEq("inherit", $xpath->findvalue("//modifyPrivilege"),
+             "$procName ACL entry modify");
+    assertEq("allow", $xpath->findvalue("//executePrivilege"),
+             "$procName ACL entry execute");
+    assertEq("inherit", $xpath->findvalue("//changePermissionsPrivilege"),
+             "$procName ACL entry changePermissions");
+};
+
+#-------------------------------------------------------------------------------
+# Test promote & demote behavior.
+#-------------------------------------------------------------------------------
+ntest "promote", {}, sub {
+    # Start out with the demoted plugin
+    assertOK($N->promotePlugin($pluginName, {promoted => 0}));
+    
+    # Make sure the plugin's ec_setup script exists
+    assertOK($xpath = $N->getProperty("/projects/$pluginName/ec_setup",
+                                      {expand => 0}),
+             "ec_setup property exists");
+    assertNe("", $xpath->findvalue("//value")->value, 
+             "ec_setup script not empty");
+
+    # Promote the plugin
+    assertOK($N->promotePlugin($pluginName));
+    
+    # Verify that the type was registered with ECSCM
+    my $scmTypes = "/plugins/ECSCM/project/scm_types";
+    my $typeName = "Property";
+    assertOK($xpath = $N->getProperty("$scmTypes/$pluginKey"), 
+             "type property exists");
+    assertEq($typeName, $xpath->findvalue("//value"), "$typeName type");
+
+    # Verify that the default Property configuration was created
+    my $scmCfgs = "/plugins/ECSCM/project/scm_cfgs";
+    assertOK($xpath = $N->getProperties({path => $scmCfgs, recurse => 1}),
+             "SCM configs exist");
+    
+    my $configName = $typeName;
+    my $scmCfg = $xpath->findnodes('//property[propertyName="'
+                                   . $configName . '"]')->[0];
+    assertDef($scmCfg, "$configName config exists");
+    assertEq("Property configuration", $scmCfg->findvalue("description"),
+             "$configName config description");
+    assertEq($pluginKey, 
+             $scmCfg->findvalue('//property[propertyName="scmPlugin"]/value'),
+             "$configName config scmPlugin");
+
+    # Verify that the plugin's project principal received execute access to the
+    # ECSCM project
+    my $projPrincipal = "project: $pluginName";
+    my $ecscmProj = '$[/plugins/ECSCM/project]';
+    assertOK($xpath = $N->getAclEntry("user", $projPrincipal,
+                                      {projectName => $ecscmProj}),
+             "ECSCM ACL entry exists");
+    assertEq("inherit", $xpath->findvalue("//readPrivilege"), 
+             "ECSCM ACL entry read");
+    assertEq("inherit", $xpath->findvalue("//modifyPrivilege"), 
+             "ECSCM ACL entry modify");
+    assertEq("allow", $xpath->findvalue("//executePrivilege"), 
+             "ECSCM ACL entry execute");
+    assertEq("inherit", $xpath->findvalue("//changePermissionsPrivilege"), 
+             "ECSCM ACL entry changePermissions");
+
+    # Demote the plugin
+    assertOK($N->promotePlugin($pluginName, {promoted => 0}));
+
+    # Verify that the type is no longer registered
+    $xpath = $N->getProperty("$scmTypes/$pluginKey");
+    assertEq("NoSuchProperty", $xpath->findvalue("//code"), 
+             "type property gone");
+
+    # Verify that the default Property configuration no longer exists
+    $xpath = $N->getProperty("$scmCfgs/$configName");
+    assertEq('NoSuchProperty', $xpath->findvalue('//code')->value);
+
+    # Verify that the plugin's project principal no longer has execute access to
+    # the ECSCM project
+    $xpath = $N->getAclEntry("user", $projPrincipal, 
+                             {projectName => $ecscmProj});
+    assertEq("NoSuchAclEntry", $xpath->findvalue("//code"), 
+             "ECSCM ACL entry gone");
+};
+
+#-------------------------------------------------------------------------------
+# Test that promotion will correct a bad Property configuration.
+#-------------------------------------------------------------------------------
+ntest "promote_stale", {}, sub {
+    # Start out with the demoted plugin
+    assertOK($N->promotePlugin($pluginName, {promoted => 0}));
+
+    # Create a broken Property configuration
+    my $scmCfgs = "/plugins/ECSCM/project/scm_cfgs";
+    my $configName = "Property";
+    assertOK($N->setProperty("$scmCfgs/$configName/scmPlugin", "junk"));
+
+    # Promote the plugin
+    assertOK($N->promotePlugin($pluginName));
+    
+    # Verify that the broken configuration was fixed
+    assertOK($xpath = $N->getProperties({path => $scmCfgs, recurse => 1}),
+             "SCM configs exist");
+    
+    my $scmCfg = $xpath->findnodes('//property[propertyName="'
+                                   . $configName . '"]')->[0];
+    assertDef($scmCfg, "$configName config exists");
+    assertEq("Property configuration", $scmCfg->findvalue("description"),
+             "$configName config description");
+    assertEq($pluginKey, 
+             $scmCfg->findvalue('//property[propertyName="scmPlugin"]/value'),
+             "$configName config scmPlugin");
+};
+
+# Ensure the plugin is promoted for later tests.
+$N->promotePlugin($pluginName);
+
+1;

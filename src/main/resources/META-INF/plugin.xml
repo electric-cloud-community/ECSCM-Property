@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin>
+    <key>ECSCM-Property</key>
+    <version>@PLUGIN_VERSION@</version>
+    <label>ECSCM-Property</label>
+    <description>SCM Plugin for Property</description>
+    <author>CloudBees</author>
+    <authorUrl>https://github.com/electric-cloud-community</authorUrl>
+    <category>Source Code Management</category>
+    <commander-version min="3.6"/>
+    <depends min="1.0">ECSCM</depends>
+    <repositoryUrl>https://github.com/electric-cloud-community/ECSCM-Property</repositoryUrl> 
+	<customTypes>
+	    <customType name="reports">
+            <displayName>Display Property Changelog Report</displayName>
+            <description></description>
+            <page pageName="PropertyReports" definition="pages/reports.xml"/>
+        </customType>
+    </customTypes>
+    <components>
+        <component name="Reports">
+            <javascript>war/ecplugins.ECSCM.Reports/ecplugins.ECSCM.Reports.nocache.js</javascript>
+        </component>
+    </components>
+    <help>help.xml</help>
+
+    <detailedDescription>Use this configuration with ElectricSentry to watch for property changes.</detailedDescription>
+    <catalogLabel>Property SCM</catalogLabel>
+</plugin>

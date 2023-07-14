@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<editor>
+    <label>Continuous Integration - Trigger Property</label>
+    <version>2.2.5</version>
+    <description>A schedule that is enabled for ElectricSentry continuous integration using an CloudBees CD property as a trigger.  ElectricSentry will monitor this property and start the build when the value of the property changes.  If a quiet time is specified, it will be enforced from the time that the property was modified.</description>
+    <help>/commander/pages/@PLUGIN_NAME@/help?s=Administration&amp;ss=Plugins</help>
+    <formElement>
+        <type>entry</type>
+        <label>Trigger property name:</label>
+        <property>TriggerPropertyName</property>
+        <required>1</required>
+        <documentation>This must be an existing CloudBees CD Property.</documentation>
+    </formElement>
+
+    <formElement>
+        <type>entry</type>
+        <label>Quiet time minutes:</label>
+        <property>QuietTimeMinutes</property>
+        <documentation>The number of minutes required with no changes to the property before launching the procedure.</documentation>
+    </formElement>
+
+    <formElement>
+        <type>checkbox</type>
+        <label>Enabled for ElectricSentry:</label>
+        <property>TriggerFlag</property>
+        <checkedValue>2</checkedValue>
+        <uncheckedValue>0</uncheckedValue>
+        <initiallyChecked>1</initiallyChecked>
+        <documentation>Enable for continuous integration monitoring by ElectricSentry.</documentation>
+    </formElement>
+
+    <formElement>
+        <property>scheduleDisabled</property>
+        <value>1</value>
+    </formElement>
+</editor>
